@@ -1,1 +1,1 @@
-# JSC370-Final-Project
+My JSC370 Final Project website

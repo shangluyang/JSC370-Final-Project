@@ -1,0 +1,159 @@
+---
+title: "Bike-share analysis"
+author: "Luyang Shang"
+date: "20/04/2022"
+output:
+  pdf_document: default
+  html_document: default
+always_allow_html: true
+---
+
+# Project description
+Bike sharing system is a shared transport service in which bicycles are made available for shared use to individuals, recently bike-sharing companies have become one of the hottest tech companies in the world especially in china, there are over 500 bike-sharing programs around the world. In this project, we will use data generated from a bike-sharing app in the Washington D.C, these apps generate a large amount of data on a daily basis and are important for studying the customer travel demand and their local road system. We aim to make deep analysis to investigate which factors contributing to bike rental demand.
+
+The customer who uses this app are divided into two group; causal user and registered user. The main difference is that, registered user does not have restriction on the number of ride they can take, while for casual users, once they return their bicycle, they can no longer re-take it unless they pay additional money. Meanwhile, registered user takes their bike for free, while casual user need to pay for a one-way trip.
+
+
+```{r, include=FALSE}
+library(tidyverse)
+library(dplyr)
+library(plotly)
+library(qwraps2)
+library(ggplot2)
+library(knitr)
+library(widgetframe)
+opts_chunk$set(
+  warning = FALSE,
+  message = FALSE,
+  eval=TRUE,
+  echo = TRUE,
+  cache=FALSE,
+  include=TRUE,
+  fig.width = 7, 
+  fig.align = 'center',
+  fig.asp = 0.618,
+  out.width = "700px")
+bike <- read.csv('bikeshare.csv')
+```
+
+```{r, echo = FALSE}
+bike$season <- recode(bike$season, '1'='spring', '2'='summer', '3'='fall', '4'='winter')
+bike$weather <- recode(bike$weather, '1'='clear', '2'='cloudy', '3'='drizzle', '4'='rainstorm')
+bike$datetime <- as.POSIXct(bike$datetime, format="%Y-%m-%d %H:%M:%S", tz="UTC")
+bike$month <- months(bike$datetime)
+bike$weekday <- weekdays(bike$datetime)
+bike$hour <- format(bike$datetime, format = "%H")
+bike$day <- format(bike$datetime, format = "%d")
+bike$commuting <- ifelse(bike$hour %in% c('7', '8', '9', '16', '17', '18', '19'), "commuting time", 'normal time')
+```
+
+Let's start to explore which factors contribute to bicycle rental demands. The following plot shows summary statistics for the number of total rentals in each hour period. We could observe that on average 191.6 people rent a bike each hour.  However, the maximum number of customers for each hour is 977, while the minimum is only 1. This suggests time might be a factor contributing to the amount of rentals.
+
+```{r, echo=FALSE}
+count_summary <- bike %>% 
+  select(count) %>% 
+  summarise(mean = mean(count),
+            median = median(count),
+            min = min(count),
+            max = max(count))
+
+knitr::kable(round(count_summary, 1), caption = "Number of total rentals")
+```
+
+The following scatter plot shows relationship between hour and average bicycle rent for two group of customer, it is clear that the average bicycle rent for membership of bikeshare app is much higher than its for causal user, indicating the registered user have higher demand than causal user, it is reasonable since they could rent the bike with cheaper price.
+
+```{r, echo=FALSE}
+b1 <- bike %>% 
+  mutate(hour = as.integer(hour)) %>% 
+  group_by(hour) %>% 
+  summarise(avg_bike = mean(casual))
+
+b2 <- bike %>% 
+  mutate(hour = as.integer(hour)) %>% 
+  group_by(hour) %>% 
+  summarise(avg_bike = mean(registered))
+
+b1$customer_type = "casual"
+b2$customer_type = "registered"
+
+b <- rbind(b1, b2)
+
+p1 <- ggplot(data = b) +
+  geom_point(mapping = aes(x=hour, y=avg_bike, color=customer_type)) +
+  ggtitle("Distribution of number of rentals for each hour by customer type") +
+  ylab("Average rental bicycles") +
+  xlab('hour')
+
+ggplotly(p1)
+```
+
+We made several analysis and found the temperature could be a potential factor influencing bicycle rental demand, we want to further explore Which group of customers is more affected by temperature, we could notice both causal user and member follows the same trend. the plot shows a strong linear relationship between number of rental bicycles and temperature, as the temperature increases, the demands for bicycles rentals increases, but when temperatures is above 36 degrees, the situation changes a bit. The trend begins to move in the opposite direction.
+
+```{r, echo = FALSE}
+b1 <- bike %>% 
+  group_by(temp) %>% 
+  summarise(avg_bike = mean(casual))
+
+b2 <- bike %>% 
+  group_by(temp) %>% 
+  summarise(avg_bike = mean(registered))
+
+b1$customer_type = "casual"
+b2$customer_type = "registered"
+
+b <- rbind(b1, b2)
+
+p2 <- ggplot(data = b) +
+  geom_point(mapping = aes(x=temp, y=avg_bike, color=customer_type)) +
+  ggtitle("Distribution of number of rentals for temperature") +
+  ylab("Average rental bicycles") +
+  xlab('temperature')
+
+ggplotly(p2)
+```
+
+To further explore the influence of temperature on demand for rental bike, we create the following scatter plot separated by each hour. We found the temperature has huge influence in commuting hour including 17, 18, indicating temperature might be a potential factor for people's decision whether they ride their bikes to work.
+
+```{r, echo=FALSE}
+p3 <- bike %>% 
+  group_by(hour, temp) %>% 
+  summarise(avg_bike = mean(count)) %>% 
+  ggplot(mapping=aes(x = temp, y=avg_bike, colour=hour)) + 
+  geom_line() + 
+  ggtitle("Average hourly rental bicycles for temperature") +
+  xlab("temperature") + 
+  ylab("Average rental bicycles")
+
+ggplotly(p3)
+```
+
+Hence, the variable hour is separated into two group, one is commuting hour including 7, 8, 9, 16, 17, 18, 19, the other is non-commuting hour, and I plot a scatter plot showing the relationship between average rental bike and temperature in two time stamp. The plot indicating a different trend between two time stamp. The temperature has much larger influence on bicycle demand in commuting time, which verify my previous assumption. Meanwhile, when temperature is above 36 degree, there is a huge decrease on bicycle demand for commuting time, while we saw an increase in bicycle demand for normal time.
+
+```{r, echo=FALSE}
+p4 <- bike %>% 
+  group_by(commuting, temp) %>% 
+  summarise(avg_bike = mean(count)) %>% 
+  ggplot(mapping=aes(x = temp, y=avg_bike, colour=commuting)) + 
+  geom_line() + 
+  ggtitle("Average hourly rental bicycles for temperature") +
+  xlab("temperature") + 
+  ylab("Average rental bicycles")
+
+ggplotly(p4)
+```
+Our analysis also found weather is potential factor influencing bikeshare demand, especially the level of humidity, our analysis found that there is a huge decrease in bikeshare demand during drizzle and rainstorm weather. However, it is surprisingly that the average rental bike increase as the humidity level increase, then reaches the peak when humidity is around 22 and starts to decrease. 
+```{r, echo = FALSE}
+p5 <- bike %>% 
+  group_by(commuting, humidity) %>% 
+  summarise(avg_bike = mean(count)) %>% 
+  ggplot(mapping=aes(x = humidity, y=avg_bike, color=commuting)) + 
+  geom_line() + 
+  ggtitle("Average hourly rental bicycles for humidity") +
+  xlab("humidity") + 
+  ylab("Average rental bicycles")
+
+ggplotly(p5)
+```
+
+report link: https://github.com/shangluyang/JSC370-Final-Project/blob/main/Final.pdf
+
