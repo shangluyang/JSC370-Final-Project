@@ -9,9 +9,9 @@ always_allow_html: true
 ---
 
 # Project description
-Bike sharing system is a shared transport service in which bicycles are made available for shared use to individuals, recently bike-sharing companies have become one of the hottest tech companies in the world especially in china, there are over 500 bike-sharing programs around the world. In this project, we will use data generated from a bike-sharing app in the Washington D.C, these apps generate a large amount of data on a daily basis and are important for studying the customer travel demand and their local road system. We aim to make deep analysis to investigate which factors contributing to bike rental demand.
+Bike sharing system is a shared transport service in which bicycles are made available for shared use to individuals. Recently bike-sharing companies have become one of the hottest tech companies in the world especially in china, there are over 500 bike-sharing programs around the world. In this project, we will use data generated from a bike-sharing app in Washington D.C, these apps generate a large amount of data on a daily basis and are important for studying the customer travel demand and their local road system. We aim to make deep analysis to investigate which factors contributing to bike rental demand.
 
-The customer who uses this app are divided into two group; causal user and registered user. The main difference is that, registered user does not have restriction on the number of ride they can take, while for casual users, once they return their bicycle, they can no longer re-take it unless they pay additional money. Meanwhile, registered user takes their bike for free, while casual user need to pay for a one-way trip.
+The customers who uses this app are divided into two groups; causal user and registered user. The main difference is that registered users do not have restrictions on the number of rides they can take, while for casual users, once they return their bicycle, they can no longer re-take it unless they pay additional money. Meanwhile, registered users take their bike for free, while casual user need to pay for a one-way trip.
 
 
 ```{r, include=FALSE}
@@ -87,6 +87,18 @@ p1 <- ggplot(data = b) +
 ggplotly(p1)
 ```
 
+In terms of the month dimension, the demand for orders appears in an annual cycle: the demand for bikes starts to rise in the spring of each year, reaches and remains at a peak level in the summer and fall, and then starts to fall back in the winter, which suggests the daily temperature and weather could be potential factors contributing to demand for rental.
+
+```{r, echo=FALSE}
+bike$month <- factor(bike$month, levels=unique(bike$month))
+
+ggplot(data = bike) +
+  geom_bar(mapping = aes(x=count, y=month), stat="identity") +
+  ggtitle("Distribution of number of rentals for each month") +
+  xlab("count") +
+  ylab('month')
+```
+
 We made several analysis and found the temperature could be a potential factor influencing bicycle rental demand, we want to further explore Which group of customers is more affected by temperature, we could notice both causal user and member follows the same trend. the plot shows a strong linear relationship between number of rental bicycles and temperature, as the temperature increases, the demands for bicycles rentals increases, but when temperatures is above 36 degrees, the situation changes a bit. The trend begins to move in the opposite direction.
 
 ```{r, echo = FALSE}
@@ -141,7 +153,21 @@ p4 <- bike %>%
 
 ggplotly(p4)
 ```
-Our analysis also found weather is potential factor influencing bikeshare demand, especially the level of humidity, our analysis found that there is a huge decrease in bikeshare demand during drizzle and rainstorm weather. However, it is surprisingly that the average rental bike increase as the humidity level increase, then reaches the peak when humidity is around 22 and starts to decrease. 
+
+The following bar plot shows distribution of Average rental bicycles for each weather, the plot indicates the demand for renting bicycles is highest when weather is clear, however lots of people choose to rent bicycles during rainstorm, we need to analyse the data further to find reason for that
+
+```{r, echo=FALSE}
+bike %>% 
+  group_by(weather) %>% 
+  summarise(avg_rent = mean(count)) %>% 
+  ggplot() +
+  geom_bar(mapping = aes(x=weather, y=avg_rent), stat="identity") +
+  ggtitle("Distribution of Average rental bicycles for each weather") +
+  xlab("weather") +
+  ylab('Average rental bicycles')
+```
+
+Our analysis found weather is potential factor influencing bikeshare demand, especially the level of humidity, our analysis found that there is a huge decrease in bikeshare demand during drizzle and rainstorm weather. However, it is surprisingly that the average rental bike increase as the humidity level increase, then reaches the peak when humidity is around 22 and starts to decrease. 
 ```{r, echo = FALSE}
 p5 <- bike %>% 
   group_by(commuting, humidity) %>% 
@@ -154,6 +180,18 @@ p5 <- bike %>%
 
 ggplotly(p5)
 ```
+
+Then I build a linear regression by considering temperature, hour, season and weather, the p value for each variable is less than the significance level (0.05), indicating all those variables are statistically significant. Meanwhile, the r-square for this model is 0.6252, indicating the model has a relatively good performance. The coefficient for temperature is around 6.7296, if we holds everything else constant, each increase in temperature will result in an average 6.7296 bicycle rental demand. Meanwhile, we notice customer has higher demand during daytime as indicated by the model. For season, customers tend to ride bike during summer and winter.
+
+```{r, echo=FALSE}
+library(mgcv)
+lm_mod <- lm(count ~ temp +  as.factor(hour) + as.factor(season) + as.factor(weather), data = bike)
+summary(lm_mod)
+```
+
+# Conclusion
+
+This data analysis aim to find the factors contribute to number of bicycle rental. We find both temperature, season, time and weather are key factors influencing bicycle rental demand. We found customer tent to rent bike when temperature is relatively high, but they avoid extremely hot weather and temperature has relatively large effect on bicycle rental in commuting hour compared with normal hour. Meanwhile, bicycle use on weekdays is concentrated between 7-10 a.m. and 18-20 p.m., coinciding with traffic rush hour. For season, we found the demand for bikes starts to rise in the spring of each year, reaches and remains at a peak level in the summer and fall, and then starts to fall back in the winter, this founding coincide with the founding for temperature. For the weather, most customer avoid using bike in raining day, and they tend to ride bike when weather is clear.
 
 report link: https://github.com/shangluyang/JSC370-Final-Project/blob/main/Final.pdf
 
