@@ -5,3 +5,5 @@ Bike sharing system is a shared transport service in which bicycles are made ava
 The data is retrieved from Kaggle, a famous data competition platform. You could observe the data from the following url: https://www.kaggle.com/c/bike-sharing-demand/data. Each row records relevant information within a hour period. The data is pretty clear, it does not contain any missing value. 
 
 Here is my final project website https://shangluyang.github.io/JSC370-Final-Project/
+
+Here is the link to my presentation: https://play.library.utoronto.ca/watch/180154743031a11b9d25a9b52dfe1504
