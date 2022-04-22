@@ -195,3 +195,5 @@ This data analysis aim to find the factors contribute to number of bicycle renta
 
 report link: https://github.com/shangluyang/JSC370-Final-Project/blob/main/Final.pdf
 
+video link: https://play.library.utoronto.ca/watch/180154743031a11b9d25a9b52dfe1504
+
